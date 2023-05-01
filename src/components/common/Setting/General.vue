@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { computed, ref } from 'vue'
-import { NButton, NInput, NPopconfirm, NSelect, useMessage } from 'naive-ui'
+import { NButton, NInput, NPopconfirm, useMessage } from 'naive-ui'
 import type { Language, Theme } from '@/store/modules/app/helper'
 import { SvgIcon } from '@/components/common'
 import { useAppStore, useUserStore } from '@/store'
@@ -120,36 +120,29 @@ function handleImportButtonClick(): void {
   if (fileInput)
     fileInput.click()
 }
+
+function logout(): void {
+
+}
 </script>
 
 <template>
   <div class="p-4 space-y-5 min-h-[200px]">
     <div class="space-y-6">
       <div class="flex items-center space-x-4">
-        <span class="flex-shrink-0 w-[100px]">{{ $t('setting.avatarLink') }}</span>
-        <div class="flex-1">
-          <NInput v-model:value="avatar" placeholder="" />
-        </div>
-        <NButton size="tiny" text type="primary" @click="updateUserInfo({ avatar })">
-          {{ $t('common.save') }}
-        </NButton>
+        <p>
+          &#x2B50;	尊敬的 <span class="text-red">{{ name }}</span>
+          您好，您当前为<span class="text-red">付费会员</span>，
+          当前剩余可用对话次数为<span class="text-green">100</span>次。(若在过程中出现异常或者无结果，将不会扣除您的次数。)
+        </p>
       </div>
       <div class="flex items-center space-x-4">
-        <span class="flex-shrink-0 w-[100px]">{{ $t('setting.name') }}</span>
+        <span class="flex-shrink-0 w-[100px]">用户昵称</span>
         <div class="w-[200px]">
           <NInput v-model:value="name" placeholder="" />
         </div>
         <NButton size="tiny" text type="primary" @click="updateUserInfo({ name })">
-          {{ $t('common.save') }}
-        </NButton>
-      </div>
-      <div class="flex items-center space-x-4">
-        <span class="flex-shrink-0 w-[100px]">{{ $t('setting.description') }}</span>
-        <div class="flex-1">
-          <NInput v-model:value="description" placeholder="" />
-        </div>
-        <NButton size="tiny" text type="primary" @click="updateUserInfo({ description })">
-          {{ $t('common.save') }}
+          保存
         </NButton>
       </div>
       <div
@@ -204,22 +197,24 @@ function handleImportButtonClick(): void {
         </div>
       </div>
       <div class="flex items-center space-x-4">
-        <span class="flex-shrink-0 w-[100px]">{{ $t('setting.language') }}</span>
-        <div class="flex flex-wrap items-center gap-4">
-          <NSelect
-            style="width: 140px"
-            :value="language"
-            :options="languageOptions"
-            @update-value="value => appStore.setLanguage(value)"
-          />
-        </div>
-      </div>
-      <div class="flex items-center space-x-4">
-        <span class="flex-shrink-0 w-[100px]">{{ $t('setting.resetUserInfo') }}</span>
-        <NButton size="small" @click="handleReset">
-          {{ $t('common.reset') }}
+        <NButton size="small" color="#FF4500" @click="logout">
+          注销登录
         </NButton>
       </div>
     </div>
   </div>
 </template>
+
+<style scoped>
+.text-red {
+	color: red;
+	margin-left: 2px;
+	margin-right: 2px;
+}
+
+.text-green {
+	color: green;
+	margin-left: 2px;
+	margin-right: 2px;
+}
+</style>
