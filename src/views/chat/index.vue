@@ -144,7 +144,6 @@ async function onConversation() {
             scrollToBottomIfAtBottom()
           }
           catch (error) {
-            //
           }
         },
       })
@@ -154,7 +153,7 @@ async function onConversation() {
     await fetchChatAPIOnce()
   }
   catch (error: any) {
-    const errorMessage = error?.message ?? t('common.wrong')
+    const errorMessage = error?.message ?? '出错了'
 
     if (error.message === 'canceled') {
       updateChatSome(

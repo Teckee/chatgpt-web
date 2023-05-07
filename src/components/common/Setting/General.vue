@@ -1,16 +1,19 @@
 <script lang="ts" setup>
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { NButton, NInput, NPopconfirm, useMessage } from 'naive-ui'
-import type { Language, Theme } from '@/store/modules/app/helper'
+import type { Theme } from '@/store/modules/app/helper'
 import { SvgIcon } from '@/components/common'
-import { useAppStore, useUserStore } from '@/store'
+import { useAppStore, useAuthStore, useUserStore } from '@/store'
 import type { UserInfo } from '@/store/modules/user/helper'
 import { getCurrentDate } from '@/utils/functions'
 import { useBasicLayout } from '@/hooks/useBasicLayout'
 import { t } from '@/locales'
+import type { UserUpdateRequest } from '@/api/user'
+import { getUserInfo, updateUserInfo } from '@/api/user'
 
 const appStore = useAppStore()
 const userStore = useUserStore()
+const authStore = useAuthStore()
 
 const { isMobile } = useBasicLayout()
 
@@ -20,20 +23,22 @@ const theme = computed(() => appStore.theme)
 
 const userInfo = computed(() => userStore.userInfo)
 
-const avatar = ref(userInfo.value.avatar ?? '')
-
 const name = ref(userInfo.value.name ?? '')
-
-const description = ref(userInfo.value.description ?? '')
-
-const language = computed({
-  get() {
-    return appStore.language
-  },
-  set(value: Language) {
-    appStore.setLanguage(value)
-  },
+const userType = ref(userInfo.value.type ?? '')
+const userTypeText = computed(() => {
+  if (userType.value === 'free')
+    return '免费用户'
+  else if (userType.value === 'vip')
+    return '付费会员'
+  else if (userType.value === 'admin')
+    return '管理员'
+  else
+    return '体验用户'
 })
+
+const latestRemainCount = ref(-1)
+
+const remainCount = computed(() => latestRemainCount.value !== -1 ? latestRemainCount.value : (userInfo.value.remainCount ?? 0))
 
 const themeOptions: { label: string; key: Theme; icon: string }[] = [
   {
@@ -53,17 +58,18 @@ const themeOptions: { label: string; key: Theme; icon: string }[] = [
   },
 ]
 
-const languageOptions: { label: string; key: Language; value: Language }[] = [
-  { label: '简体中文', key: 'zh-CN', value: 'zh-CN' },
-  { label: '繁體中文', key: 'zh-TW', value: 'zh-TW' },
-  { label: 'English', key: 'en-US', value: 'en-US' },
-  { label: '한국어', key: 'ko-KR', value: 'ko-KR' },
-  { label: 'Русский язык', key: 'ru-RU', value: 'ru-RU' },
-]
-
-function updateUserInfo(options: Partial<UserInfo>) {
-  userStore.updateUserInfo(options)
-  ms.success(t('common.success'))
+async function saveUserInfo(options: Partial<UserInfo>) {
+  try {
+    const userUpdateRequest: UserUpdateRequest = {
+      userName: options.name,
+    }
+    await updateUserInfo(userUpdateRequest)
+    userStore.updateUserInfo(options)
+    ms.success('保存成功')
+  }
+  catch (error) {
+    ms.error(error.message ?? '保存失败')
+  }
 }
 
 function handleReset() {
@@ -121,8 +127,37 @@ function handleImportButtonClick(): void {
     fileInput.click()
 }
 
-function logout(): void {
+async function refreshUserInfo() {
+  try {
+    const { data } = await getUserInfo()
 
+    const lastestUserInfo: UserInfo = {
+      name: data?.userName,
+      type: data?.userType,
+      remainCount: data?.remainCount,
+    }
+
+    latestRemainCount.value = data?.remainCount
+
+    userStore.refreshUserInfo(lastestUserInfo)
+    userInfo.value = lastestUserInfo
+  }
+  catch (error) {
+    ms.error(error.message ?? 'error')
+  }
+}
+
+// refresh the user info every time when user open the settings
+onMounted(() => {
+  refreshUserInfo()
+})
+
+function logout(): void {
+  // 移除token
+  authStore.removeToken()
+  userStore.resetUserInfo()
+  // 重载页面
+  window.location.reload()
 }
 </script>
 
@@ -132,8 +167,8 @@ function logout(): void {
       <div class="flex items-center space-x-4">
         <p>
           &#x2B50;	尊敬的 <span class="text-red">{{ name }}</span>
-          您好，您当前为<span class="text-red">付费会员</span>，
-          当前剩余可用对话次数为<span class="text-green">100</span>次。(若在过程中出现异常或者无结果，将不会扣除您的次数。)
+          您好，您当前为<span class="text-red">{{ userTypeText }}</span>，
+          当前剩余可用对话次数为<span class="text-green">{{ remainCount }}</span>次。(若在过程中出现异常或者无结果，将不会扣除您的次数。)
         </p>
       </div>
       <div class="flex items-center space-x-4">
@@ -141,7 +176,7 @@ function logout(): void {
         <div class="w-[200px]">
           <NInput v-model:value="name" placeholder="" />
         </div>
-        <NButton size="tiny" text type="primary" @click="updateUserInfo({ name })">
+        <NButton size="tiny" text type="primary" @click="saveUserInfo({ name })">
           保存
         </NButton>
       </div>
